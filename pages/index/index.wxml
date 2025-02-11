@@ -1,0 +1,22 @@
+<!--index.wxml-->
+<view class="container">
+  <view class="header">
+    <text>优品猎手</text>
+  </view>
+  <view class="filter">
+    <picker mode="selector" range="{{materials}}" bindchange="setMaterial">
+      <view>选择材质：{{selectedMaterial}}</view>
+    </picker>
+    <slider min="28" max="34" bindchange="setDiameter"/>
+    <view>选择直径：{{diameter}}cm</view>
+  </view>
+  <view class="list">
+    <block wx:for="{{pans}}" wx:key="id">
+      <view class="item">
+        <text>{{item.title}}</text>
+        <text>直径：{{item.diameter}}cm</text>
+        <text>价格：¥{{item.price}}</text>
+      </view>
+    </block>
+  </view>
+</view>
