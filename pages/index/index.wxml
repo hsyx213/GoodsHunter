@@ -1,22 +1,138 @@
 <!--index.wxml-->
 <view class="container">
-  <view class="header">
-    <text>优品猎手</text>
-  </view>
-  <view class="filter">
-    <picker mode="selector" range="{{materials}}" bindchange="setMaterial">
-      <view>选择材质：{{selectedMaterial}}</view>
-    </picker>
-    <slider min="28" max="34" bindchange="setDiameter"/>
-    <view>选择直径：{{diameter}}cm</view>
-  </view>
-  <view class="list">
-    <block wx:for="{{pans}}" wx:key="id">
-      <view class="item">
-        <text>{{item.title}}</text>
-        <text>直径：{{item.diameter}}cm</text>
-        <text>价格：¥{{item.price}}</text>
+  <!-- 筛选栏 -->
+  <view class="filter-section">
+    <view class="filter-header">
+      <view class="filter-options">
+        <view class="filter-tab" bindtap="toggleFilterPanel">
+          <text>筛选</text>
+          <view class="selected-filters" wx:if="{{hasActiveFilters}}">
+            <view class="selected-filter" wx:if="{{selectedPriceRange}}">
+              <text>{{selectedPriceRange}}</text>
+              <text class="remove" bindtap="removeFilter" data-type="price">×</text>
+            </view>
+            <view class="selected-filter" wx:if="{{selectedMaterial}}">
+              <text>{{selectedMaterial}}</text>
+              <text class="remove" bindtap="removeFilter" data-type="material">×</text>
+            </view>
+            <view class="selected-filter" wx:if="{{selectedSize}}">
+              <text>{{selectedSize}}</text>
+              <text class="remove" bindtap="removeFilter" data-type="size">×</text>
+            </view>
+          </view>
+          <text class="arrow {{showFilterPanel ? 'up' : 'down'}}"></text>
+        </view>
       </view>
-    </block>
+      <view class="sort-dropdown" bindtap="toggleSortOptions">
+        <text>{{currentSort.text}}</text>
+        <text class="arrow {{sortOptionsVisible ? 'up' : 'down'}}"></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 筛选下拉面板 -->
+  <view class="filter-dropdown" wx:if="{{showFilterPanel}}">
+    <view class="filter-section-title">价格区间</view>
+    <view class="filter-options-row">
+      <view class="filter-option {{selectedPriceRange === '0-100' ? 'active' : ''}}" 
+            bindtap="selectPriceRange" 
+            data-range="0-100">
+        ¥0-100
+      </view>
+      <view class="filter-option {{selectedPriceRange === '100-200' ? 'active' : ''}}" 
+            bindtap="selectPriceRange" 
+            data-range="100-200">
+        ¥100-200
+      </view>
+      <view class="filter-option {{selectedPriceRange === '200-300' ? 'active' : ''}}" 
+            bindtap="selectPriceRange" 
+            data-range="200-300">
+        ¥200-300
+      </view>
+      <view class="filter-option {{selectedPriceRange === '300up' ? 'active' : ''}}" 
+            bindtap="selectPriceRange" 
+            data-range="300up">
+        ¥300以上
+      </view>
+    </view>
+
+    <view class="filter-section-title">材质</view>
+    <view class="filter-options-row">
+      <view class="filter-item {{selectedMaterial === item ? 'active' : ''}}" 
+            wx:for="{{materials}}" 
+            wx:key="*this"
+            bindtap="selectMaterial" 
+            data-material="{{item}}">
+        {{item}}
+      </view>
+    </view>
+
+    <view class="filter-section-title">尺寸</view>
+    <view class="filter-options-row">
+      <view class="filter-item {{selectedSize === item ? 'active' : ''}}" 
+            wx:for="{{sizes}}" 
+            wx:key="*this"
+            bindtap="selectSize" 
+            data-size="{{item}}">
+        {{item}}
+      </view>
+    </view>
+
+    <!-- 底部按钮 -->
+    <view class="filter-actions">
+      <button class="btn-reset" bindtap="resetFilters">重置</button>
+      <button class="btn-confirm" bindtap="confirmFilters">确定</button>
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <scroll-view 
+    scroll-y 
+    class="products-container"
+    bindscrolltolower="loadMore">
+    <view class="products-grid">
+      <view class="product-card" 
+            wx:for="{{products}}" 
+            wx:key="id"
+            bindtap="goToDetail"
+            data-id="{{item.id}}">
+        <image class="product-image" src="{{item.thumbnail}}" mode="aspectFill" lazy-load/>
+        <view class="product-info">
+          <text class="product-name">{{item.name}}</text>
+          <text class="product-price">¥{{item.price}}</text>
+          <view class="product-specs">
+            <text class="spec-item">{{item.specs.diameter}}</text>
+            <text class="spec-item">{{item.specs.material}}</text>
+            <text class="spec-item">{{item.specs.coating}}</text>
+          </view>
+          <view class="product-rating">
+            <text class="rating">{{item.rating}}分</text>
+            <text class="sales">销量{{item.sales}}</text>
+          </view>
+        </view>
+        <view class="product-actions">
+          <view class="action-btn" catchtap="toggleFavorite" data-product="{{item}}">
+            <image src="/images/tabbar/{{item.isFavorite ? 'favorite-active.png' : 'favorite.png'}}"/>
+          </view>
+          <view class="action-btn" catchtap="goToBuy" data-url="{{item.buyLink}}">
+            <image src="/images/tabbar/buy.png"/>
+          </view>
+        </view>
+      </view>
+    </view>
+    <!-- 加载更多提示 -->
+    <view class="loading" wx:if="{{loading}}">正在加载...</view>
+    <view class="no-more" wx:if="{{noMore}}">没有更多数据了</view>
+  </scroll-view>
+
+  <!-- 排序选项 -->
+  <view class="sort-options" wx:if="{{sortOptionsVisible}}">
+    <view class="sort-item {{currentSort.value === item.value ? 'active' : ''}}" 
+          wx:for="{{sortOptions}}" 
+          wx:key="value"
+          bindtap="selectSort" 
+          data-sort="{{item}}">
+      {{item.text}}
+    </view>
   </view>
 </view>

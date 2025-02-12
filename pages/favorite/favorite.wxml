@@ -1,0 +1,153 @@
+<!--pages/favorite/favorite.wxml-->
+<view class="container">
+  <!-- 顶部操作栏 -->
+  <view class="action-bar">
+    <view class="left">
+      <text>已收藏 {{favorites.length}} 件商品</text>
+    </view>
+    <view class="right">
+      <text wx:if="{{!isCompareMode}}" bindtap="enterCompareMode">对比</text>
+      <block wx:else>
+        <text class="cancel" bindtap="exitCompareMode">取消</text>
+        <text class="compare {{selectedCount < 2 ? 'disabled' : ''}}" bindtap="showCompareModal">
+          对比({{selectedCount}})
+        </text>
+      </block>
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
+  <scroll-view scroll-y class="products-container">
+    <view class="products-grid">
+      <view class="product-card" 
+            wx:for="{{favorites}}" 
+            wx:key="id">
+        <!-- 对比模式下的选择框 -->
+        <view class="select-box" wx:if="{{isCompareMode}}" catchtap="toggleSelect" data-id="{{item.id}}">
+          <view class="checkbox {{item.selected ? 'checked' : ''}}"></view>
+        </view>
+        
+        <image class="product-image" src="{{item.thumbnail}}" mode="aspectFill" lazy-load/>
+        <view class="product-info">
+          <text class="product-name">{{item.name}}</text>
+          <text class="product-price">¥{{item.price}}</text>
+          <view class="product-specs">
+            <text class="spec-item">{{item.specs.diameter}}</text>
+            <text class="spec-item">{{item.specs.material}}</text>
+            <text class="spec-item">{{item.specs.coating}}</text>
+          </view>
+          <view class="product-rating">
+            <text class="rating">{{item.rating}}分</text>
+            <text class="sales">销量{{item.sales}}</text>
+          </view>
+        </view>
+        <view class="product-actions">
+          <view class="action-btn" catchtap="toggleFavorite" data-product="{{item}}">
+            <image src="/images/tabbar/favorite-active.png"/>
+          </view>
+          <view class="action-btn" catchtap="goToBuy" data-url="{{item.buyLink}}">
+            <image src="/images/tabbar/buy.png"/>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 对比弹窗 -->
+  <view class="compare-modal" wx:if="{{showCompareModal}}">
+    <view class="modal-mask" bindtap="hideCompareModal"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text>商品对比</text>
+        <view class="close" bindtap="hideCompareModal">×</view>
+      </view>
+      <scroll-view scroll-y class="compare-content">
+        <!-- 商品图片展示 -->
+        <view class="products-preview">
+          <view class="product-item" wx:for="{{selectedProducts}}" wx:key="id">
+            <image src="{{item.thumbnail}}" mode="aspectFit"/>
+            <text class="name">{{item.name}}</text>
+            <text class="price">¥{{item.price}}</text>
+          </view>
+        </view>
+
+        <!-- 对比详情 -->
+        <view class="compare-details">
+          <!-- 价格 -->
+          <view class="compare-item">
+            <view class="label">价格</view>
+            <view class="values">
+              <text wx:for="{{selectedProducts}}" wx:key="id" 
+                    class="{{index === 0 || item.price < selectedProducts[index-1].price ? 'highlight' : ''}}">
+                ¥{{item.price}}
+              </text>
+            </view>
+          </view>
+
+          <!-- 材质 -->
+          <view class="compare-item">
+            <view class="label">材质</view>
+            <view class="values">
+              <text wx:for="{{selectedProducts}}" wx:key="id">{{item.specs.material}}</text>
+            </view>
+          </view>
+
+          <!-- 涂层 -->
+          <view class="compare-item">
+            <view class="label">涂层</view>
+            <view class="values">
+              <text wx:for="{{selectedProducts}}" wx:key="id">{{item.specs.coating}}</text>
+            </view>
+          </view>
+
+          <!-- 尺寸 -->
+          <view class="compare-item">
+            <view class="label">尺寸</view>
+            <view class="values">
+              <text wx:for="{{selectedProducts}}" wx:key="id">{{item.specs.diameter}}</text>
+            </view>
+          </view>
+
+          <!-- 评分 -->
+          <view class="compare-item">
+            <view class="label">评分</view>
+            <view class="values">
+              <text wx:for="{{selectedProducts}}" wx:key="id" 
+                    class="{{index === 0 || item.rating > selectedProducts[index-1].rating ? 'highlight' : ''}}">
+                {{item.rating}}分
+              </text>
+            </view>
+          </view>
+
+          <!-- 销量 -->
+          <view class="compare-item">
+            <view class="label">销量</view>
+            <view class="values">
+              <text wx:for="{{selectedProducts}}" wx:key="id" 
+                    class="{{index === 0 || item.sales > selectedProducts[index-1].sales ? 'highlight' : ''}}">
+                {{item.sales}}
+              </text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <!-- 底部操作栏 -->
+      <view class="modal-footer">
+        <button class="btn-buy" 
+                wx:for="{{selectedProducts}}" 
+                wx:key="id"
+                data-url="{{item.buyLink}}"
+                bindtap="goToBuy">
+          购买 {{item.name}}
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 无收藏商品提示 -->
+  <view class="empty-tip" wx:if="{{favorites.length === 0}}">
+    <image src="/images/tabbar/favorite.png"/>
+    <text>暂无收藏商品</text>
+  </view>
+</view>
