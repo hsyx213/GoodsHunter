@@ -10,7 +10,7 @@
       <block wx:else>
         <text class="cancel" bindtap="exitCompareMode">取消</text>
         <text class="compare {{selectedCount < 2 ? 'disabled' : ''}}" bindtap="showCompareModal">
-          对比({{selectedCount}})
+          对比({{selectedCount}}/5)
         </text>
       </block>
     </view>
@@ -18,27 +18,33 @@
 
   <!-- 商品列表 -->
   <scroll-view scroll-y class="products-container">
-    <view class="products-grid">
+    <view class="products-list">
       <view class="product-card" 
             wx:for="{{favorites}}" 
-            wx:key="id">
+            wx:key="id"
+            bindtap="goToDetail" 
+            data-id="{{item.id}}">
         <!-- 对比模式下的选择框 -->
-        <view class="select-box" wx:if="{{isCompareMode}}" catchtap="toggleSelect" data-id="{{item.id}}">
+        <view class="select-box" 
+              wx:if="{{isCompareMode}}" 
+              catchtap="toggleSelect" 
+              data-id="{{item.id}}">
           <view class="checkbox {{item.selected ? 'checked' : ''}}"></view>
         </view>
-        
-        <image class="product-image" src="{{item.thumbnail}}" mode="aspectFill" lazy-load/>
         <view class="product-info">
-          <text class="product-name">{{item.name}}</text>
-          <text class="product-price">¥{{item.price}}</text>
-          <view class="product-specs">
-            <text class="spec-item">{{item.specs.diameter}}</text>
-            <text class="spec-item">{{item.specs.material}}</text>
-            <text class="spec-item">{{item.specs.coating}}</text>
-          </view>
-          <view class="product-rating">
-            <text class="rating">{{item.rating}}分</text>
-            <text class="sales">销量{{item.sales}}</text>
+          <image class="product-image" src="{{item.thumbnail}}" mode="aspectFill" lazy-load/>
+          <view class="product-details">
+            <text class="product-name">{{item.name}}</text>
+            <text class="product-price">¥{{item.price}}</text>
+            <view class="product-specs">
+              <text class="spec-item">{{item.specs.diameter}}</text>
+              <text class="spec-item">{{item.specs.material}}</text>
+              <text class="spec-item">{{item.specs.coating}}</text>
+            </view>
+            <view class="product-rating">
+              <text class="rating">{{item.rating}}分</text>
+              <text class="sales">销量{{item.sales}}</text>
+            </view>
           </view>
         </view>
         <view class="product-actions">
@@ -61,72 +67,81 @@
         <text>商品对比</text>
         <view class="close" bindtap="hideCompareModal">×</view>
       </view>
+      
       <scroll-view scroll-y class="compare-content">
         <!-- 商品图片展示 -->
         <view class="products-preview">
-          <view class="product-item" wx:for="{{selectedProducts}}" wx:key="id">
+          <view class="product-item" 
+                wx:for="{{selectedProducts}}" 
+                wx:key="id">
             <image src="{{item.thumbnail}}" mode="aspectFit"/>
             <text class="name">{{item.name}}</text>
-            <text class="price">¥{{item.price}}</text>
           </view>
         </view>
 
         <!-- 对比详情 -->
         <view class="compare-details">
-          <!-- 价格 -->
-          <view class="compare-item">
+          <!-- 价格对比 -->
+          <view class="compare-row price">
             <view class="label">价格</view>
             <view class="values">
-              <text wx:for="{{selectedProducts}}" wx:key="id" 
-                    class="{{index === 0 || item.price < selectedProducts[index-1].price ? 'highlight' : ''}}">
+              <text wx:for="{{selectedProducts}}" 
+                    wx:key="id" 
+                    class="{{item.isLowestPrice ? 'highlight' : ''}}">
                 ¥{{item.price}}
               </text>
             </view>
           </view>
 
-          <!-- 材质 -->
-          <view class="compare-item">
+          <!-- 材质对比 -->
+          <view class="compare-row">
             <view class="label">材质</view>
             <view class="values">
               <text wx:for="{{selectedProducts}}" wx:key="id">{{item.specs.material}}</text>
             </view>
           </view>
 
-          <!-- 涂层 -->
-          <view class="compare-item">
+          <!-- 涂层对比 -->
+          <view class="compare-row">
             <view class="label">涂层</view>
             <view class="values">
               <text wx:for="{{selectedProducts}}" wx:key="id">{{item.specs.coating}}</text>
             </view>
           </view>
 
-          <!-- 尺寸 -->
-          <view class="compare-item">
+          <!-- 尺寸对比 -->
+          <view class="compare-row">
             <view class="label">尺寸</view>
             <view class="values">
               <text wx:for="{{selectedProducts}}" wx:key="id">{{item.specs.diameter}}</text>
             </view>
           </view>
 
-          <!-- 评分 -->
-          <view class="compare-item">
+          <!-- 深度对比 -->
+          <view class="compare-row">
+            <view class="label">深度</view>
+            <view class="values">
+              <text wx:for="{{selectedProducts}}" wx:key="id">{{item.specs.depth}}</text>
+            </view>
+          </view>
+
+          <!-- 评分对比 -->
+          <view class="compare-row rating">
             <view class="label">评分</view>
             <view class="values">
-              <text wx:for="{{selectedProducts}}" wx:key="id" 
-                    class="{{index === 0 || item.rating > selectedProducts[index-1].rating ? 'highlight' : ''}}">
+              <text wx:for="{{selectedProducts}}" 
+                    wx:key="id"
+                    class="{{item.isHighestRating ? 'highlight' : ''}}">
                 {{item.rating}}分
               </text>
             </view>
           </view>
 
-          <!-- 销量 -->
-          <view class="compare-item">
+          <!-- 销量对比 -->
+          <view class="compare-row sales">
             <view class="label">销量</view>
             <view class="values">
-              <text wx:for="{{selectedProducts}}" wx:key="id" 
-                    class="{{index === 0 || item.sales > selectedProducts[index-1].sales ? 'highlight' : ''}}">
-                {{item.sales}}
-              </text>
+              <text wx:for="{{selectedProducts}}" wx:key="id">{{item.sales}}</text>
             </view>
           </view>
         </view>
@@ -134,13 +149,13 @@
 
       <!-- 底部操作栏 -->
       <view class="modal-footer">
-        <button class="btn-buy" 
-                wx:for="{{selectedProducts}}" 
-                wx:key="id"
-                data-url="{{item.buyLink}}"
-                bindtap="goToBuy">
-          购买 {{item.name}}
-        </button>
+        <view class="action-btn" 
+              wx:for="{{selectedProducts}}" 
+              wx:key="id"
+              data-url="{{item.buyLink}}"
+              bindtap="goToBuy">
+          <image src="/images/tabbar/buy.png" mode="aspectFit" />
+        </view>
       </view>
     </view>
   </view>

@@ -78,6 +78,30 @@
       </view>
     </view>
 
+    <!-- 新增涂层筛选 -->
+    <view class="filter-section-title">涂层</view>
+    <view class="filter-options-row">
+      <view class="filter-item {{selectedCoating === item ? 'active' : ''}}" 
+            wx:for="{{coatings}}" 
+            wx:key="*this"
+            bindtap="selectCoating" 
+            data-coating="{{item}}">
+        {{item}}
+      </view>
+    </view>
+
+    <!-- 新增深度筛选 -->
+    <view class="filter-section-title">深度</view>
+    <view class="filter-options-row">
+      <view class="filter-item {{selectedDepth === item ? 'active' : ''}}" 
+            wx:for="{{depths}}" 
+            wx:key="*this"
+            bindtap="selectDepth" 
+            data-depth="{{item}}">
+        {{item}}
+      </view>
+    </view>
+
     <!-- 底部按钮 -->
     <view class="filter-actions">
       <button class="btn-reset" bindtap="resetFilters">重置</button>
@@ -93,21 +117,21 @@
     <view class="products-grid">
       <view class="product-card" 
             wx:for="{{products}}" 
-            wx:key="id"
-            bindtap="goToDetail"
-            data-id="{{item.id}}">
-        <image class="product-image" src="{{item.thumbnail}}" mode="aspectFill" lazy-load/>
+            wx:key="id">
         <view class="product-info">
-          <text class="product-name">{{item.name}}</text>
-          <text class="product-price">¥{{item.price}}</text>
-          <view class="product-specs">
-            <text class="spec-item">{{item.specs.diameter}}</text>
-            <text class="spec-item">{{item.specs.material}}</text>
-            <text class="spec-item">{{item.specs.coating}}</text>
-          </view>
-          <view class="product-rating">
-            <text class="rating">{{item.rating}}分</text>
-            <text class="sales">销量{{item.sales}}</text>
+          <image class="product-image" src="{{item.thumbnail}}" mode="aspectFill" lazy-load/>
+          <view class="product-details">
+            <text class="product-name">{{item.name}}</text>
+            <text class="product-price">¥{{item.price}}</text>
+            <view class="product-specs">
+              <text class="spec-item">{{item.specs.diameter}}</text>
+              <text class="spec-item">{{item.specs.material}}</text>
+              <text class="spec-item">{{item.specs.coating}}</text>
+            </view>
+            <view class="product-rating">
+              <text class="rating">{{item.rating}}分</text>
+              <text class="sales">销量{{item.sales}}</text>
+            </view>
           </view>
         </view>
         <view class="product-actions">

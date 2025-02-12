@@ -5,6 +5,7 @@ Page({
   data: {
     products: [],
     currentPage: 1,
+    pageSize: 10,
     loading: false,
     noMore: false,
     
@@ -25,6 +26,7 @@ Page({
     
     filters: {},
     
+    // 排序选项
     sortOptions: [
       { text: '综合排序', value: 'default' },
       { text: '价格从低到高', value: 'price-asc' },
@@ -32,54 +34,101 @@ Page({
       { text: '评分从高到低', value: 'rating-desc' },
       { text: '销量从高到低', value: 'sales-desc' }
     ],
-    currentSort: { text: '综合排序', value: 'default' }
+    currentSort: { text: '综合排序', value: 'default' },
+    
+    // 涂层和深度选项
+    coatings: [
+      '不粘涂层',
+      '钛晶涂层',
+      '麦饭石涂层',
+      '陶瓷涂层',
+      '纳米涂层',
+      '石墨烯涂层'
+    ],
+    depths: [
+      '7.0cm以下',
+      '7.0-8.0cm',
+      '8.1-9.0cm',
+      '9.1cm以上'
+    ],
+    selectedCoating: '',
+    selectedDepth: '',
+    
+    // 样例商品数据
+    sampleProducts: [
+      {
+        id: "1",
+        name: "苏泊尔不粘锅炒锅",
+        price: 199.00,
+        rating: 4.8,
+        brand: "苏泊尔",
+        specs: {
+          material: "铝",
+          coating: "不粘涂层",
+          diameter: "28cm",
+          depth: "8.5cm"
+        },
+        thumbnail: "images/placeholder.png",
+        buyLink: "pages/product/product?sku=100009082466",
+        sales: 1000,
+        isFavorite: false
+      },
+      {
+        id: "2",
+        name: "九阳炒锅不粘锅",
+        price: 159.00,
+        rating: 4.6,
+        brand: "九阳",
+        specs: {
+          material: "铝",
+          coating: "钛晶涂层",
+          diameter: "26cm",
+          depth: "7.8cm"
+        },
+        thumbnail: "images/placeholder.png",
+        buyLink: "pages/product/product?sku=100009082467",
+        sales: 800,
+        isFavorite: false
+      }
+    ]
   },
 
   onLoad() {
-    this.setData({
-      filters: app.globalData.filters
-    })
-    this.loadProducts()
+    this.loadProducts();
   },
 
-  // 加载商品数据
-  async loadProducts() {
-    if (this.data.loading || this.data.noMore) return
+  loadProducts() {
+    const { currentPage, pageSize } = this.data;
+    const allProducts = getApp().globalData.products;
     
-    this.setData({ loading: true })
-    
-    try {
-      // 模拟API请求
-      const products = await this.fetchProducts()
-      
-      // 处理收藏和对比状态
-      const processedProducts = products.map(product => ({
-        ...product,
-        isFavorite: app.globalData.favorites.some(f => f.id === product.id),
-        isComparing: app.globalData.compareList.some(c => c.id === product.id)
-      }))
-      
-      this.setData({
-        products: [...this.data.products, ...processedProducts],
-        currentPage: this.data.currentPage + 1,
-        noMore: processedProducts.length < app.globalData.pageSize
-      })
-    } catch (error) {
-      wx.showToast({
-        title: '加载失败',
-        icon: 'none'
-      })
-    } finally {
-      this.setData({ loading: false })
+    // 模拟分页加载
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    const newProducts = allProducts.slice(start, end);
+
+    if (newProducts.length === 0) {
+      this.setData({ noMore: true });
+      return;
     }
+
+    // 获取收藏状态
+    const favorites = wx.getStorageSync('favorites') || [];
+    const productsWithFavorite = newProducts.map(product => ({
+      ...product,
+      isFavorite: favorites.some(f => f.id === product.id)
+    }));
+
+    this.setData({
+      products: [...this.data.products, ...productsWithFavorite],
+      currentPage: currentPage + 1
+    });
   },
 
-  // 模拟获取商品数据
-  async fetchProducts() {
-    // 这里暂时使用本地数据，后续可替换为实际API
-    const { products } = require('../../data/products.js')
-    const start = (this.data.currentPage - 1) * app.globalData.pageSize
-    return products.slice(start, start + app.globalData.pageSize)
+  // 下拉加载更多
+  onReachBottom() {
+    if (!this.data.noMore && !this.data.loading) {
+      this.loadProducts();
+    }
   },
 
   // 筛选相关方法
@@ -161,40 +210,76 @@ Page({
 
   // 选择排序方式
   selectSort(e) {
-    const sort = e.currentTarget.dataset.sort
+    const sort = e.currentTarget.dataset.sort;
     this.setData({
       currentSort: sort,
       sortOptionsVisible: false
-    })
-    this.applyFilters()
+    });
+    
+    // 执行排序
+    this.sortProducts(sort.value);
+  },
+
+  // 排序商品
+  sortProducts(sortType) {
+    const products = [...this.data.products];
+    
+    switch (sortType) {
+      case 'price-asc':
+        products.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        products.sort((a, b) => b.price - a.price);
+        break;
+      case 'rating-desc':
+        products.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'sales-desc':
+        products.sort((a, b) => b.sales - a.sales);
+        break;
+      default:
+        // 综合排序，可以根据多个因素加权
+        products.sort((a, b) => {
+          const scoreA = a.rating * 0.4 + a.sales * 0.4 + (1000 - a.price) * 0.2;
+          const scoreB = b.rating * 0.4 + b.sales * 0.4 + (1000 - b.price) * 0.2;
+          return scoreB - scoreA;
+        });
+    }
+    
+    this.setData({ products });
   },
 
   // 应用筛选和排序
   applyFilters() {
-    // 重置商品列表
+    // 重置数据
     this.setData({
-      products: [],
       currentPage: 1,
+      products: [],
       noMore: false
-    })
-    // 重新加载商品
-    this.loadProducts()
+    });
+    
+    // 重新加载数据
+    this.loadProducts();
   },
 
   // 收藏切换
   toggleFavorite(e) {
-    const product = e.currentTarget.dataset.product
-    const isFavorite = app.toggleFavorite(product)
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
     
-    // 更新商品列表中的收藏状态
+    const product = e.currentTarget.dataset.product;
+    const isFavorite = app.toggleFavorite(product);
+    
+    // 更新页面显示
     const products = this.data.products.map(p => {
       if (p.id === product.id) {
-        return { ...p, isFavorite }
+        return { ...p, isFavorite };
       }
-      return p
-    })
+      return p;
+    });
     
-    this.setData({ products })
+    this.setData({ products });
   },
 
   // 对比切换
@@ -216,27 +301,26 @@ Page({
 
   // 跳转到购买链接
   goToBuy(e) {
-    e.stop()  // 阻止事件冒泡
-    const id = e.currentTarget.dataset.id
-    const url = e.currentTarget.dataset.url
+    if (e && e.stopPropagation) {
+        e.stopPropagation();
+    } else {
+        e.preventDefault && e.preventDefault();
+    }
+    
+    const url = e.currentTarget.dataset.url;
     wx.navigateToMiniProgram({
-      appId: 'wx91d27dbf599dff74',  // 京东小程序的 appId
-      path: url,
-      success(res) {
-        console.log('跳转成功')
-      },
-      fail(res) {
-        wx.showToast({
-          title: '跳转失败',
-          icon: 'none'
-        })
-      }
-    })
-  },
-
-  // 加载更多
-  loadMore() {
-    this.loadProducts()
+        appId: 'wx91d27dbf599dff74',  // 京东小程序的 appId
+        path: url,
+        success(res) {
+            console.log('跳转成功');
+        },
+        fail(res) {
+            wx.showToast({
+                title: '跳转失败',
+                icon: 'none'
+            });
+        }
+    });
   },
 
   // 重置筛选条件
@@ -283,4 +367,58 @@ Page({
       })
     }
   },
+
+  // 更新筛选逻辑以包含涂层和深度
+  filterProducts(products) {
+    let filteredProducts = products;
+    
+    // 应用材质筛选
+    if (this.hasSelectedOptions('material')) {
+      filteredProducts = filteredProducts.filter(product => 
+        this.getSelectedValues('material').includes(product.specs.material)
+      );
+    }
+    
+    // 应用尺寸筛选
+    if (this.hasSelectedOptions('size')) {
+      filteredProducts = filteredProducts.filter(product => 
+        this.getSelectedValues('size').includes(product.specs.diameter)
+      );
+    }
+    
+    // 应用涂层筛选
+    if (this.hasSelectedOptions('coating')) {
+      filteredProducts = filteredProducts.filter(product => 
+        this.getSelectedValues('coating').includes(product.specs.coating)
+      );
+    }
+    
+    // 应用深度筛选
+    if (this.hasSelectedOptions('depth')) {
+      filteredProducts = filteredProducts.filter(product => 
+        this.getSelectedValues('depth').includes(product.specs.depth)
+      );
+    }
+    
+    return filteredProducts;
+  },
+
+  hasSelectedOptions(option) {
+    return this.data[`${option}FilterOpen`] || this.data[`${option}FilterOpen`] === false;
+  },
+
+  getSelectedValues(option) {
+    return this.data[`${option}FilterOpen`] === true ? this.data[option] : [];
+  },
+
+  // 在页面显示时重新加载收藏状态
+  onShow() {
+    const favorites = app.globalData.favorites;
+    const products = this.data.products.map(product => ({
+      ...product,
+      isFavorite: favorites.some(f => f.id === product.id)
+    }));
+    
+    this.setData({ products });
+  }
 })

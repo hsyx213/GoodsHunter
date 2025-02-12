@@ -8,7 +8,8 @@ App({
       materials: ['铝', '不锈钢', '铸铁'],
       coatings: ['陶瓷涂层', '不粘涂层', '钛涂层'],
       diameters: ['20cm', '24cm', '26cm', '28cm', '30cm']
-    }
+    },
+    products: require('./data/products.js')
   },
 
   onLaunch: function() {
@@ -29,18 +30,29 @@ App({
     })
   },
 
-  // 收藏功能
+  // 全局收藏切换方法
   toggleFavorite(product) {
-    const index = this.globalData.favorites.findIndex(f => f.id === product.id);
+    const favorites = this.globalData.favorites;
+    // 确保比较时使用数字类型
+    const index = favorites.findIndex(f => parseInt(f.id) === parseInt(product.id));
+    
     if (index > -1) {
-      // 如果已收藏，则取消收藏
-      this.globalData.favorites.splice(index, 1);
-      return false; // 返回未收藏状态
+      // 取消收藏
+      favorites.splice(index, 1);
     } else {
-      // 如果未收藏，则添加到收藏
-      this.globalData.favorites.push(product);
-      return true; // 返回已收藏状态
+      // 添加收藏，确保保存完整的商品信息
+      favorites.push({
+        ...product,
+        id: parseInt(product.id)  // 确保保存为数字类型
+      });
     }
+
+    // 更新本地存储
+    wx.setStorageSync('favorites', favorites);
+    // 更新全局数据
+    this.globalData.favorites = favorites;
+    
+    return index === -1; // 返回是否已收藏
   },
 
   // 添加商品到对比列表

@@ -1,5 +1,6 @@
 // pages/favorite/favorite.js
 const app = getApp()
+const products = require('../../data/products.js') // 引入商品数据
 
 Page({
 
@@ -11,7 +12,29 @@ Page({
     isCompareMode: false, // 是否处于对比模式
     selectedCount: 0, // 已选择商品数量
     showCompareModal: false, // 是否显示对比弹窗
-    selectedProducts: [] // 已选择的商品列表
+    selectedProducts: [], // 已选择的商品列表
+    productList: [
+      {
+        name: "爱仕达炒锅不粘锅",
+        price: "¥199",
+        material: "铝",
+        coating: "不粘涂层",
+        size: "28cm",
+        rating: "4.7分",
+        sales: "750",
+        imageUrl: "images/placeholder.png" // 使用本地占位图片
+      },
+      {
+        name: "苏泊尔不粘锅炒锅",
+        price: "¥159",
+        material: "铝",
+        coating: "陶瓷涂层",
+        size: "26cm",
+        rating: "4.6分",
+        sales: "800",
+        imageUrl: "images/placeholder.png" // 使用本地占位图片
+      }
+    ]
   },
 
   /**
@@ -19,6 +42,7 @@ Page({
    */
   onLoad(options) {
     this.loadFavorites()
+    this.checkImageAvailability()
   },
 
   /**
@@ -32,7 +56,6 @@ Page({
    * 生命周期函数--监听页面显示
    */
   onShow() {
-    // 每次页面显示时重新加载收藏列表，以同步其他页面的收藏操作
     this.loadFavorites()
   },
 
@@ -73,65 +96,106 @@ Page({
 
   // 加载收藏列表
   loadFavorites() {
-    const favorites = wx.getStorageSync('favorites') || []
-    // 添加selected属性用于对比模式
-    const favoritesWithSelect = favorites.map(item => ({
-      ...item,
-      selected: false
-    }))
-    this.setData({ favorites: favoritesWithSelect })
+    const favorites = app.globalData.favorites;
+    
+    // 设置收藏列表数据
+    this.setData({ 
+      favorites: favorites.map(item => ({
+        ...item,
+        selected: false
+      }))
+    });
   },
 
-  // 进入对比模式
-  enterCompareMode() {
-    this.setData({ 
-      isCompareMode: true,
-      selectedCount: 0,
-      selectedProducts: []
+  checkImageAvailability() {
+    const placeholder = "https://via.placeholder.com/150" // 占位图片
+    let newProductList = this.data.productList.map(item => {
+      return {
+        ...item,
+        imageUrl: this.isValidImage(item.imageUrl) ? item.imageUrl : placeholder
+      }
     })
+    this.setData({ productList: newProductList })
   },
 
-  // 退出对比模式
-  exitCompareMode() {
-    // 重置所有选择状态
-    const favorites = this.data.favorites.map(item => ({
-      ...item,
-      selected: false
-    }))
-    this.setData({ 
-      isCompareMode: false,
-      selectedCount: 0,
-      selectedProducts: [],
-      favorites
-    })
+  isValidImage(url) {
+    return url && url.startsWith("https://img14.360buyimg.com")
   },
 
   // 切换商品选择状态
   toggleSelect(e) {
-    const id = e.currentTarget.dataset.id
-    const favorites = this.data.favorites.map(item => {
-      if (item.id === id) {
-        // 如果已经选择了3个商品且当前商品未选中，则不允许再选
-        if (this.data.selectedCount >= 3 && !item.selected) {
-          wx.showToast({
-            title: '最多只能对比3个商品',
-            icon: 'none'
-          })
-          return item
-        }
-        return { ...item, selected: !item.selected }
-      }
-      return item
-    })
-
-    // 计算选中数量和选中商品列表
-    const selectedProducts = favorites.filter(item => item.selected)
+    console.log('触发选择事件：', e.currentTarget.dataset.id);
+    // 确保 id 是数字类型
+    const id = parseInt(e.currentTarget.dataset.id);
     
+    const favorites = this.data.favorites.map(item => {
+      // 确保比较时也是数字类型
+      if (parseInt(item.id) === id) {
+        console.log('找到匹配商品：', item);
+        if (this.data.selectedCount >= 5 && !item.selected) {
+          wx.showToast({
+            title: '最多只能对比5个商品',
+            icon: 'none'
+          });
+          return item;
+        }
+        return { ...item, selected: !item.selected };
+      }
+      return item;
+    });
+
+    const selectedCount = favorites.filter(item => item.selected).length;
+    const selectedProducts = favorites.filter(item => item.selected);
+
+    console.log('更新后的选中数量：', selectedCount);
+    console.log('更新后的选中商品：', selectedProducts);
+
     this.setData({
       favorites,
-      selectedCount: selectedProducts.length,
+      selectedCount,
       selectedProducts
-    })
+    });
+  },
+
+  // 进入对比模式
+  enterCompareMode() {
+    console.log('进入对比模式');
+    this.setData({
+      isCompareMode: true,
+      selectedCount: 0,
+      selectedProducts: []
+    }, () => {
+      console.log('对比模式状态：', this.data.isCompareMode);
+      console.log('当前收藏列表：', this.data.favorites);
+    });
+  },
+
+  // 退出对比模式
+  exitCompareMode() {
+    // 清除所有选中状态
+    const favorites = this.data.favorites.map(item => ({
+      ...item,
+      selected: false
+    }));
+
+    this.setData({
+      isCompareMode: false,
+      selectedCount: 0,
+      selectedProducts: [],
+      favorites
+    });
+  },
+
+  // 计算最低价格
+  isLowestPrice(price) {
+    const prices = this.data.selectedProducts.map(p => p.price);
+    return price === Math.min(...prices);
+  },
+
+  // 计算最高评分
+  isHighestRating(rating) {
+    const ratings = this.data.selectedProducts.map(p => p.rating);
+    return rating === Math.max(...ratings);
   },
 
   // 显示对比弹窗
@@ -139,23 +203,55 @@ Page({
     if (this.data.selectedCount < 2) {
       wx.showToast({
         title: '请至少选择2个商品',
-        icon: 'none'
-      })
-      return
+        icon: 'none',
+        duration: 1500
+      });
+      return;
     }
-    this.setData({ showCompareModal: true })
+
+    // 计算每个商品的最优属性
+    const selectedProducts = this.data.selectedProducts.map(product => ({
+      ...product,
+      isLowestPrice: this.isLowestPrice(product.price),
+      isHighestRating: this.isHighestRating(product.rating)
+    }));
+
+    this.setData({ 
+      showCompareModal: true,
+      selectedProducts
+    });
   },
 
   // 隐藏对比弹窗
   hideCompareModal() {
-    this.setData({ showCompareModal: false })
+    this.setData({ showCompareModal: false });
+  },
+
+  // 生成对比数据
+  generateCompareData() {
+    const products = this.data.selectedProducts;
+    return {
+      prices: products.map(p => p.price),
+      materials: products.map(p => p.specs.material),
+      coatings: products.map(p => p.specs.coating),
+      diameters: products.map(p => p.specs.diameter),
+      depths: products.map(p => p.specs.depth),
+      ratings: products.map(p => p.rating),
+      sales: products.map(p => p.sales)
+    };
   },
 
   // 取消收藏
   toggleFavorite(e) {
-    const product = e.currentTarget.dataset.product
-    app.toggleFavorite(product)
-    this.loadFavorites() // 重新加载收藏列表
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+    
+    const product = e.currentTarget.dataset.product;
+    app.toggleFavorite(product);
+    
+    // 直接从全局数据重新加载收藏列表
+    this.loadFavorites();
   },
 
   // 跳转到购买链接
